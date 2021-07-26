@@ -6,27 +6,24 @@
 #include <stdlib.h>
 #include <limits.h>
 
-#define COUNT 10
 #define RED 'r'
 #define BlACK 'b'
-#define MAXLINESIZE 20384
+#define HEAPSIZE 5096
 #define ADD 'A'
 #define TOP 'T'
 
 //global variables
-int offset;
-int matrixSize;
 int key = 0;
 
 //Heap values
 typedef struct elem{
     int weight;
     int index;
-    int prev;
+
 }elem;
 
-elem heap[MAXLINESIZE/4];
-int heapIndex[MAXLINESIZE/4];
+elem heap[HEAPSIZE];
+int heapIndex[HEAPSIZE];
 int heapSize = 0;
 
 /*
@@ -92,7 +89,6 @@ elem deleteMin(){
 void insertHeap(int weight, int index){
     heap[heapSize].weight = weight;
     heap[heapSize].index = index;
-    heap[heapSize].prev = -1;
     heapIndex[index] = heapSize;
     int i = heapSize;
     heapSize++;
@@ -128,18 +124,6 @@ typedef struct node{
 }*node;
 node root = NULL;
 
-node createNode(unsigned int sum){
-    node t = malloc(sizeof(struct node));
-    t->parent = NULL;
-    t->left = NULL;
-    t->right = NULL;
-    t->color = RED;
-    t->sum = sum;
-    t->idx = key;
-    key++;
-    return t;
-}
-
 /*
  * RB tree implementation
  */
@@ -150,6 +134,27 @@ void inOrder(node t){
     inOrder(t->left);
     printf("%d%c ", t->sum, t->color);
     inOrder(t->right);
+}
+
+void topK(node t, int *count, int k){
+    if (t == NULL) {
+        return;
+    }
+    if (t->left != NULL){
+        topK(t->left, count, k);
+    }
+    if (*count > 0){
+        (*count)--;
+        if (*count == k - 1){
+            printf("%d", t->idx);
+        } else {
+            printf(" %d", t->idx);
+        }
+
+    }
+    if (t->right != NULL && *count > 0){
+        topK(t->right, count, k);
+    }
 }
 
 void leftRotate(node x){
@@ -230,7 +235,18 @@ void insertFixUp(node t){
     }
 }
 
-void insert(node t){
+void insert(int sum){
+    //Create node
+    node t = malloc(sizeof(struct node));
+    t->parent = NULL;
+    t->left = NULL;
+    t->right = NULL;
+    t->color = RED;
+    t->sum = sum;
+    t->idx = key;
+    key++;
+
+    //Insert operation
     node pre = NULL;
     node cur = root;
     while (cur != NULL){
@@ -255,40 +271,14 @@ void insert(node t){
     root->color = BlACK;
 }
 
-void print2DUtil(node pNode, int space)
-{
-    // Base case
-    if (pNode == NULL)
-        return;
-
-    // Increase distance between levels
-    space += COUNT;
-
-    // Process right child first
-    print2DUtil(pNode->right, space);
-
-    // Print current node after space
-    // count
-    printf("\n");
-    for (int i = COUNT; i < space; i++)
-        printf(" ");
-    printf("%d%c\n", pNode->sum, pNode->color);
-
-    // Process left child
-    print2DUtil(pNode->left, space);
-}
-void print2D(node pNode)
-{
-    // Pass initial space count as 0
-    print2DUtil((node) pNode, 0);
-}
-
 char getCommand(){
     char command;
     char c = getchar_unlocked();
-    while (c != ADD && c != TOP) c = getchar_unlocked();
+    while (c != EOF && c != ADD && c != TOP) c = getchar_unlocked();
     command = c;
-    while(c != '\n') c = getchar_unlocked();
+    if (c != EOF){
+        while(c != '\n') c = getchar_unlocked();
+    }
     return command;
 }
 
@@ -305,47 +295,17 @@ int getInt(){
     return ret;
 }
 
-int getIntFrom(const char *string){
-    int ret = 0;
-
-    while(string[offset] < 48 || string[offset] > 57){
-        offset++;
-    }
-    while(string[offset] > 47 && string[offset] < 58){
-        ret = 10*ret+string[offset]-48;
-        offset++;
-    }
-
-    return ret;
-}
-
-int *readMatrix(){
-    char *string = malloc(MAXLINESIZE * sizeof(char));
-    fgets(string, MAXLINESIZE, stdin);
-
-    matrixSize = 1;
-    offset = 0;
-    while (string[offset] != '\n'){
-        if (string[offset] == ','){
-            matrixSize++;
-        }
-        offset++;
-    }
-
-    offset = 0;
+int *readMatrix(int matrixSize){
     int *matrix = malloc(matrixSize * matrixSize * sizeof(int));
 
-    for (int i = 0; i < matrixSize; ++i) {
-        matrix[i] = getIntFrom(string);
-    }
-    for (int i = matrixSize; i < matrixSize * matrixSize; ++i) {
+    for (int i = 0; i < matrixSize * matrixSize; ++i) {
         matrix[i] = getInt();
     }
 
     return matrix;
 }
 
-int sumShortestPaths(const int *mat){
+int sumShortestPaths(const int *mat, int matrixSize){
     heapSize = 0;
     int rowIndex;
     int sum = 0;
@@ -392,59 +352,41 @@ int sumShortestPaths(const int *mat){
         buildMinHeap();
     }
 
-    //! heap[heapIndex[i]] -> heap[i]
     for (int i = 0; i < matrixSize; ++i) {
-        if (heap[heapIndex[i]].weight != INT_MAX){
-            sum += heap[heapIndex[i]].weight;
+        if (heap[i].weight != INT_MAX){
+            sum += heap[i].weight;
         }
     }
 
     return sum;
 }
 
-void addGraph(){
-    int *mat = readMatrix();
-    int sum = sumShortestPaths(mat);
+void addGraph(int matrixSize){
+    int *mat = readMatrix(matrixSize);
+    int sum = sumShortestPaths(mat, matrixSize);
+    insert(sum);
+    free(mat);
 }
+
 int main(){
     int d,k;
-    char input = 'z';
-    int *mat;
-    int tmp;
-    while (input != 'q'){
-        input = getchar_unlocked();
-        switch (input) {
-            case 'a': //insert into RB tree
-                insert(createNode(getInt()));
+    char c;
+    d = getInt(); //number of nodes
+    k = getInt(); //top graphs to display
+    while (1) {
+        c = getCommand();
+        switch (c) {
+            case 'A':
+                addGraph(d);
                 break;
-            case 'b': //print in order RB tree
-                inOrder(root);
-                break;
-            case 'c': //print 2D tree
-                print2D(root);
-                break;
-            case 'd':
-                mat = readMatrix();
-                for (int i = 0; i < matrixSize * matrixSize; ++i) {
-                    printf("%d ", mat[i]);
-                }
+            case 'T':
+                topK(root,&k, k);
                 printf("\n");
                 break;
-            case 'e':
-                tmp = heapSize;
-                for (int i = 0; i < tmp; ++i) {
-                    printf("%d ", deleteMin().weight);
-                }
-                break;
-            case 'f':
-                mat = readMatrix();
-                tmp = sumShortestPaths(mat);
-                printf("%d\n", tmp);
-                break;
-            default: break;
+            case EOF:
+                return 0;
         }
     }
-    return 0;
 }
 
 
