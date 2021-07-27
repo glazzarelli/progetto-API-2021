@@ -332,7 +332,7 @@ int sumShortestPaths(const int *mat, int matrixSize){
      * - for each node reachable from x:
      *      calculate the newWeight = dist from source + dist(x,node)
      *      if newWeight < i-node.sum -> update value
-     * - buildMinHeap to restore the priority queue3
+     * - buildMinHeap to restore the priority queue
      */
     while (heapSize != 0){
         min = deleteMin();
