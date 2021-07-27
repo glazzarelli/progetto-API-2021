@@ -154,7 +154,7 @@ void insertMaxHeap(int weight, int index){
     maxHeapSize++;
     elem tmp;
 
-    while (i > 0 && maxHeap[parent(i)].weight < maxHeap[i].weight){
+    while (i > 0 && maxHeap[parent(i)].weight <= maxHeap[i].weight){
         tmp = maxHeap[i];
 
         maxHeap[i] = maxHeap[parent(i)];
